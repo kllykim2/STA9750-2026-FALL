@@ -1,0 +1,44 @@
+---
+title: "Kelly Kim's First Website"
+---
+
+# 
+
+## About Me
+Hi, I'm Kelly Kim! I'm currently a master's student in Quantitative Methods and Modeling at Baruch College.
+This website was created for *STA 9750 Mini-Project #00*
+
+![](https://miffytown.com/app/uploads/2023/10/9781471120831.jpg)
+
+### Kelly's To-Dos:
+  1. Include a brief introduction of who you are.
+  2. Include personal headshot (?)
+  3. Include link to a full resume, or similar...
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+if(!require("leaflet")){
+    options(repos=c(CRAN="https://cloud.r-project.org"))
+    install.packages("leaflet")
+    stopifnot(require("leaflet"))
+}
+
+baruch_longitude <- -73.98333
+baruch_latitude  <- +40.74028
+
+leaflet() |>
+  addTiles() |>
+  setView(baruch_longitude, baruch_latitude, zoom=17) |>
+  addPopups(baruch_longitude, baruch_latitude, 
+            "I am a Master's student at <b>Baruch College</b>!")
+```
+
+```{r}
+#| include: false
+1+1
+```
+--------------
+Last Updated: `r format(Sys.time(), "%A %m %d, %Y at %H:%M%p")`
