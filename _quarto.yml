@@ -8,13 +8,17 @@ website:
     Course Projects for STA 9750 at Baruch College
   site-url: "https://kllykim2.github.io/STA9750-2026-FALL/"
   navbar:
-    background: primary
+    background: "#D96C9D"
+    foreground: "#FFFFFF"
     search: false
-    
+
 format:
   html:
-    theme: quartz
+    theme: litera
     toc: false
+    backgroundcolor: "#FFF7FA"
+    fontcolor: "#3E2832"
+    linkcolor: "#B83270"
 
 editor:
   mode: source

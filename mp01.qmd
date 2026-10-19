@@ -10,7 +10,7 @@
 ---
 
 # Introduction of Mini-Project #01: What We Watched: Exploring Netflix Viewing Data
-For years, Netflix kept its viewership numbers private, but this changed in 2023 when the company began releasing *What We Watched* reports every siz months to cover engagement across its catalog. This happened for two reasons:
+For years, Netflix kept its viewership numbers private, but this changed in 2023 when the company began releasing *What We Watched* reports every six months to cover engagement across its catalog. This happened for two reasons:
 
 1. Advertisers on Netflix's ad-supported tier wanted to know which titles draw the most viewers
 2. To ensure that creators receive fair and accurate backend compensation after pressure from the creative community
