@@ -18,22 +18,20 @@ The Green Transit Alliance (GTA) estimates the effective emissions reductions ac
 
 By comparing these to the tailpipe emissions that would have occurred if all riders had instead driven to their destination, the VI identifies the most valuable public transit agencies in the country.
 
-In this report, we'll walk through the key statistics that lead the the selection for the winners of the various GTA awards.
+In this report, we will review the key statistics that lead to the highest scores on this year’s GTA Value Index.
 
 ## Context
 There are three datasets: 
 
-1. State level electricity-emissions data which maps how much CO₂ is produced from electricity from each state
-2. Transit energy-use data which shows how much fuel and/or electricity each transit agency uses for public transportation.
-3. Transit passenger-service data gives the number of passenger trips and passenger miles each transit agency provides.
+1. State level electricity-emissions data, which maps how much CO₂ is produced from electricity from each state.
+2. Transit energy-use data, which shows how much fuel and/or electricity each transit agency uses for public transportation.
+3. Transit passenger-service data, which lists the number of passenger trips and passenger miles each transit agency provides.
 
-This report uses these datasets to connect transit agencies’ energy consumption with passenger service and state-level electricity emissions. This allows us to examine how these components intertwine with one another and reveal broader patterns. For example, an agency serving more passengers may burn more fuel and produce more total CO2, but it may  be more efficient than an agency that produces less total CO2 while serving proportionally fewer passengers.
+This report uses these datasets to connect transit agencies’ energy consumption with passenger service and state-level electricity emissions. By examining the relationship between these factors, one can better understand the VI’s measure of “value”. For example, an agency serving more passengers may burn more fuel and produce more total CO₂, but it may be more efficient than an agency that produces less total CO₂ while serving proportionally fewer passengers.
 
 
 
-## Task 1a
-
-##Data Acquisition - State Electricity Profiles
+## Data Acquisition - State Electricity Profiles
 
 The following code will parse the EIA SEP summary pages and create a “tidy” table 
 
@@ -130,7 +128,7 @@ EIA_SEP_REPORT <- map2(state.name, state.abb, get_eia_sep) |> list_rbind()
 
 ```
 
-The State Energy Profiles dataset is organized at the state level, with `{r} nrow(EIA_SEP_REPORT)` total rows - one per each state in the US. It shows the amount each state's electricity, its respective price, and state-wide generation capacity. We will use this data to compare the emissions of different transit modalities. 
+The State Energy Profiles dataset is organized at the state level, with `{r} nrow(EIA_SEP_REPORT)` total rows - one for each state in the US. Rows show the amount of each state’s electricity, its respective price, and state-wide generation capacity. We will use this data to compare the emissions of different transit modalities.
 
 We next turn to the National Transit Database to get information on various public transit authorities.
 
@@ -203,9 +201,9 @@ NTD_ENERGY <- load_ntd_energy()
 
 ```
 
-Here, the first 3 columns (NTD ID, Mode, and Agency Name) identify the operating agency and the relevant mode of transportation while the remaining columns denote how much of each type of fuel that agency used during 2023. The non-electric sources are all quoted in gallons, while Electric Battery and Electric Propulsion are quoted in kWh used.
+Here, the first 3 columns (NTD ID, Mode, and Agency Name) identify the operating agency and the relevant mode of transportation while the remaining columns denote how much of each fuel type that agency used during 2023. The non-electric sources are all quoted in gallons, while Electric Battery and Electric Propulsion are quoted in kWh used.
 
-The Mode column is important: it is used to distinguish multiple transport types operated the same agency, e.g. MTA subways and buses in NYC. The two letter codes used by the NTD, however, are not immediately interpretable.
+The Mode column is important: it is used to distinguish multiple transport types operated by the same agency, e.g. MTA subways and buses in NYC. The two letter codes used by the NTD, however, are not immediately interpretable.
 
 ## Data Acquisition - Transit Service Provided
 
@@ -270,7 +268,7 @@ NTD_SERVICE <- load_ntd_service()
 
 ```
 
-Here UPT is the number of total Unlinked Passenger Trips during 2025; that is, the number of distinct (non-transfer) trips taken
+Here, UPT is the number of total Unlinked Passenger Trips during 2025 — that is, the number of distinct (non-transfer) trips.
 
 # Data Cleaning and Preparation
 
@@ -3919,7 +3917,7 @@ MOST_EFFICIENT_PER_PMT_TABLE <-
 
 ```
 
-To find the most efficient agencies, their respective emissions were summed up across all modes of transportation. Then, it was divide the totals across the agency-level UPT and passenger miles. A lower value represents a lower emissions rate relative to the number of passenger service provided.
+To identify the most efficient agencies, each agency’s emissions were summed across all modes of transportation. The agency’s total emissions were then divided by its UPT and passenger miles to calculate emissions per passenger boarding and per passenger mile. Lower rates indicate lower emissions relative to the amount of passenger service provided.
 
 ```{r}
 #| label: Efficiency Tables Results 1
@@ -4793,72 +4791,6 @@ The winners of the Pichu, Pikachu, and Raichu award had a significant portion of
 #| message: false
 #| warning: false
 
-library(tidyverse)
-library(glue)
-library(scales)
-
-# Prepare the Lightest Footprint announcements.
-PR_FOOTPRINT <- LIGHTEST_FOOTPRINT |>
-  mutate(
-    announcement = glue(
-      "**{agency_name}** wins with ",
-      "**{number(emissions_per_pmt, accuracy = 0.001)} lb CO₂ ",
-      "per passenger mile**, ",
-      "**{percent(below_median, accuracy = 0.1)} below** ",
-      "the size-group median of ",
-      "**{number(median_co2_per_pmt, accuracy = 0.001)} lb**. ",
-      "Reported modes: **{modes}**."
-    )
-  )
-
-# Identify the exclusively electric modes operated by each agency.
-PR_ELECTRIC_MODES <- AGENCY_MODE_EMISSIONS |>
-  filter(exclusively_electric) |>
-  distinct(ntd_id, mode_name) |>
-  group_by(ntd_id) |>
-  summarize(
-    electric_modes = paste(
-      sort(mode_name),
-      collapse = ", "
-    ),
-    .groups = "drop"
-  )
-
-# Prepare the electric-award announcements.
-PR_ELECTRIC <- ELECTRIC_MILES_WINNER |>
-  left_join(
-    PR_ELECTRIC_MODES,
-    by = "ntd_id",
-    relationship = "many-to-one"
-  ) |>
-  mutate(
-    pokemon = case_when(
-      agency_size == "Small Agencies" ~ "Pichu",
-      agency_size == "Medium Agencies" ~ "Pikachu",
-      agency_size == "Large Agencies" ~ "Raichu"
-    ),
-
-    announcement = glue(
-      "**{agency_name}** receives the **{pokemon} Award**, ",
-      "with **{percent(electric_pmt_share, accuracy = 0.1)}** ",
-      "of passenger miles supplied by exclusively electric modes: ",
-      "**{electric_modes}**. That represents ",
-      "**{comma(electric_pmt, accuracy = 1)} electric passenger miles**, ",
-      "compared with a median electric share of ",
-      "**{percent(median_electric_share, accuracy = 0.1)}** ",
-      "for its size group."
-    )
-  )
-
-# Return the announcement for a requested size group.
-# Exact ties are retained.
-award_copy <- function(data, size) {
-  data |>
-    filter(as.character(agency_size) == size) |>
-    pull(announcement) |>
-    paste(collapse = " ")
-}
-
 # Apply consistent pink styling to both media graphics.
 press_theme <- theme_minimal(
   base_size = 12,
@@ -4895,16 +4827,20 @@ press_theme <- theme_minimal(
       size = 9,
       lineheight = 1.15
     ),
-    plot.margin = margin(12, 20, 12, 12)
+    plot.margin = margin(
+      12,
+      20,
+      12,
+      12
+    )
   )
-
 ```
 
 ## HEADLINE: GTA Announces Its Transit Award Winners
 
-The Green Transit Alliance is announcing its annual transit awards which recognizes agencies that demonstrate two different approaches to eco-friendly travels: reducing modeled carbon emissions per passenger mile and having a substantial participation of passenger travel through exclusively electric modes.
+The Green Transit Alliance is announcing its annual transit awards, which recognize agencies that demonstrate two different approaches to eco-friendly travels: reducing modeled carbon emissions per passenger mile and having a substantial participation of passenger travel through exclusively electric modes.
 
-Using 2025 National Transit Database Energy and Service records, along with the state electricity emissions rates, GTA compared agencies within small, medium, and large service-size categories. The agencies were divided into approximately three equal-sized groups based on annual passenger miles.
+Using 2025 National Transit Database Energy and Service records, along with the state electricity emissions rates, the GTA compared agencies within small, medium, and large service-size categories. The agencies were divided into approximately three equal-sized groups based on annual passenger miles.
 
 The awards this year recognize both efficient passenger movement and the usage of electric service.
 
@@ -4916,13 +4852,19 @@ Each winner is compared with the median agency in its own size group. This provi
 
 **Congratulations to:**
 
-**Small-agency winner:** `{r} award_copy(PR_FOOTPRINT, "Small Agencies")`
+- **Small-agency winner:** **`{r} LIGHTEST_FOOTPRINT |> filter(agency_size == "Small Agencies") |> pull(agency_name) |> paste(collapse = " and ")`** recorded **`{r} LIGHTEST_FOOTPRINT |> filter(agency_size == "Small Agencies") |> pull(emissions_per_pmt) |> first() |> scales::number(accuracy = 0.001)` lb of CO₂ per passenger mile**. 
 
-**Medium-agency winner:** `{r} award_copy(PR_FOOTPRINT, "Medium Agencies")`
+This was **`{r} LIGHTEST_FOOTPRINT |> filter(agency_size == "Small Agencies") |> pull(below_median) |> first() |> scales::percent(accuracy = 0.1)` below** the small-agency median of **`{r} LIGHTEST_FOOTPRINT |> filter(agency_size == "Small Agencies") |> pull(median_co2_per_pmt) |> first() |> scales::number(accuracy = 0.001)` lb per passenger mile**.
 
-**Large-agency winner:** `{r} award_copy(PR_FOOTPRINT, "Large Agencies")`
+- **Medium-agency winner:** **`{r} LIGHTEST_FOOTPRINT |> filter(agency_size == "Medium Agencies") |> pull(agency_name) |> paste(collapse = " and ")`** recorded **`{r} LIGHTEST_FOOTPRINT |> filter(agency_size == "Medium Agencies") |> pull(emissions_per_pmt) |> first() |> scales::number(accuracy = 0.001)` lb of CO₂ per passenger mile**. 
 
-These winners show us that providing more transit service does not necessarily mean operating less efficiently. This award recognizes agencies that move passengers efficiently with small carbon impact - regardless of their overall size.
+This was **`{r} LIGHTEST_FOOTPRINT |> filter(agency_size == "Medium Agencies") |> pull(below_median) |> first() |> scales::percent(accuracy = 0.1)` below** the medium-agency median of **`{r} LIGHTEST_FOOTPRINT |> filter(agency_size == "Medium Agencies") |> pull(median_co2_per_pmt) |> first() |> scales::number(accuracy = 0.001)` lb per passenger mile**.
+
+- **Large-agency winner:** **`{r} LIGHTEST_FOOTPRINT |> filter(agency_size == "Large Agencies") |> pull(agency_name) |> paste(collapse = " and ")`** recorded **`{r} LIGHTEST_FOOTPRINT |> filter(agency_size == "Large Agencies") |> pull(emissions_per_pmt) |> first() |> scales::number(accuracy = 0.001)` lb of CO₂ per passenger mile**. 
+
+This was **`{r} LIGHTEST_FOOTPRINT |> filter(agency_size == "Large Agencies") |> pull(below_median) |> first() |> scales::percent(accuracy = 0.1)` below** the large-agency median of **`{r} LIGHTEST_FOOTPRINT |> filter(agency_size == "Large Agencies") |> pull(median_co2_per_pmt) |> first() |> scales::number(accuracy = 0.001)` lb per passenger mile**.
+
+These winners show us that providing more transit service does not necessarily mean operating less efficiently, despite the increase in emissions. This award recognizes agencies that move passengers efficiently with small carbon impact - regardless of their overall size.
 
 ```{r}
 #| label: press-lightest-footprint-graphic
@@ -4935,7 +4877,7 @@ These winners show us that providing more transit service does not necessarily m
 #| fig-alt: "Small, medium, and large agency winners compared with their size-group median CO2 emissions per passenger mile."
 
 # Prepare one winner-versus-median comparison per panel.
-FP_PLOT_DATA <- PR_FOOTPRINT |>
+FP_PLOT_DATA <- LIGHTEST_FOOTPRINT |>
   mutate(
     panel = paste0(
       agency_size,
@@ -5033,13 +4975,44 @@ A mode is classified as exclusively electric when it uses electricity without re
 
 **Congratulations to:**
 
-**Pichu Award — small agencies:** `{r} award_copy(PR_ELECTRIC, "Small Agencies")`
+- **Pichu Award (Small Agencies):** **`{r} ELECTRIC_MILES_WINNER |> filter(agency_size == "Small Agencies") |> pull(agency_name) |> paste(collapse = " and ")`**, with **`{r} ELECTRIC_MILES_WINNER |> filter(agency_size == "Small Agencies") |> pull(electric_pmt_share) |> first() |> scales::percent(accuracy = 0.1)`** of passenger miles supplied by exclusively electric modes.
 
-**Pikachu Award — medium agencies:** `{r} award_copy(PR_ELECTRIC, "Medium Agencies")`
+- **Pikachu Award (Medium Agencies):** **`{r} ELECTRIC_MILES_WINNER |> filter(agency_size == "Medium Agencies") |> pull(agency_name) |> paste(collapse = " and ")`**, with **`{r} ELECTRIC_MILES_WINNER |> filter(agency_size == "Medium Agencies") |> pull(electric_pmt_share) |> first() |> scales::percent(accuracy = 0.1)`** of passenger miles supplied by exclusively electric modes.
 
-**Raichu Award — large agencies:** `{r} award_copy(PR_ELECTRIC, "Large Agencies")`
+- **Raichu Award (Large Agencies):** **`{r} ELECTRIC_MILES_WINNER |> filter(agency_size == "Large Agencies") |> pull(agency_name) |> paste(collapse = " and ")`**, with **`{r} ELECTRIC_MILES_WINNER |> filter(agency_size == "Large Agencies") |> pull(electric_pmt_share) |> first() |> scales::percent(accuracy = 0.1)`** of passenger miles supplied by exclusively electric modes.
 
 The winners demonstrate that electric leadership can take different forms. Some agencies supply all reported passenger miles through exclusively electric modes, while others lead their peers through a partially electric service network. Either way, these agencies are giving an extra spark to public transportation!
+
+```{r}
+#| label: Elecrtric Award Eligibility 
+#| code-fold: true
+#| code-summary: "Elecrtric Award Eligibility"
+#| message: false
+#| warning: false
+
+
+# Summarize how many eligible agencies reported any passenger miles
+# supplied by qualifying exclusively electric modes.
+ELECTRIC_SERVICE_SUMMARY <- ELECTRIC_AWARD_ELIGIBLE |>
+  group_by(agency_size) |>
+  summarize(
+    eligible_agencies = n(),
+
+    agencies_with_electric_service = sum(
+      electric_pmt_share > 0,
+      na.rm = TRUE
+    ),
+
+    percent_with_electric_service = mean(
+      electric_pmt_share > 0,
+      na.rm = TRUE
+    ),
+
+    .groups = "drop"
+  )
+```
+
+More impressively, of the **`{r} ELECTRIC_SERVICE_SUMMARY |> filter(agency_size == "Small Agencies") |> pull(eligible_agencies)` eligible small agencies**, only **`{r} ELECTRIC_SERVICE_SUMMARY |> filter(agency_size == "Small Agencies") |> pull(agencies_with_electric_service)`**, or **`{r} ELECTRIC_SERVICE_SUMMARY |> filter(agency_size == "Small Agencies") |> pull(percent_with_electric_service) |> scales::percent(accuracy = 0.1)`**, reported any passenger miles supplied by qualifying exclusively electric modes. Similarly, of the **`{r} ELECTRIC_SERVICE_SUMMARY |> filter(agency_size == "Medium Agencies") |> pull(eligible_agencies)` eligible medium agencies**, only **`{r} ELECTRIC_SERVICE_SUMMARY |> filter(agency_size == "Medium Agencies") |> pull(agencies_with_electric_service)`**, or **`{r} ELECTRIC_SERVICE_SUMMARY |> filter(agency_size == "Medium Agencies") |> pull(percent_with_electric_service) |> scales::percent(accuracy = 0.1)`**, reported any passenger miles supplied by qualifying exclusively electric modes. Among the **`{r} ELECTRIC_SERVICE_SUMMARY |> filter(agency_size == "Large Agencies") |> pull(eligible_agencies)` eligible large agencies**, **`{r} ELECTRIC_SERVICE_SUMMARY |> filter(agency_size == "Large Agencies") |> pull(agencies_with_electric_service)`**, or **`{r} ELECTRIC_SERVICE_SUMMARY |> filter(agency_size == "Large Agencies") |> pull(percent_with_electric_service) |> scales::percent(accuracy = 0.1)`**, reported qualifying exclusively electric passenger service.
 
 ```{r}
 #| label: Powered by Pokemon Award Graphic
